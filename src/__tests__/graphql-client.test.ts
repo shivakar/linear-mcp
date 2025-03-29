@@ -140,11 +140,11 @@ describe('LinearGraphQLClient', () => {
       
       const result: CreateIssueResponse = await graphqlClient.createIssue(input);
 
-      // Verify single mutation call with array input
+      // Verify single mutation call with direct input (not array)
       expect(mockRawRequest).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          input: [input]
+          input: input
         })
       );
 
