@@ -73,6 +73,23 @@ export const CREATE_BATCH_ISSUES = gql`
   }
 `;
 
+export const UPDATE_ISSUE_MUTATION = gql`
+  mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+    issueUpdate(id: $id, input: $input) {
+      success
+      issue {
+        id
+        identifier
+        title
+        url
+        state {
+          name
+        }
+      }
+    }
+  }
+`;
+
 export const UPDATE_ISSUES_MUTATION = gql`
   mutation UpdateIssues($ids: [String!]!, $input: IssueUpdateInput!) {
     issueUpdate(ids: $ids, input: $input) {

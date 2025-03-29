@@ -589,4 +589,42 @@ describe('LinearGraphQLClient', () => {
       ).rejects.toThrow('GraphQL operation failed: Label creation failed');
     });
   });
+
+  describe('updateIssue', () => {
+    it('should update a single issue', async () => {
+      const mockResponse = {
+        data: {
+          issueUpdate: {
+            success: true,
+            issue: {
+              id: 'issue-1',
+              identifier: 'TEST-1',
+              title: 'Updated Issue',
+              url: 'https://linear.app/test/issue/TEST-1',
+              state: {
+                name: 'In Progress'
+              }
+            }
+          }
+        }
+      };
+
+      mockRawRequest.mockResolvedValueOnce(mockResponse);
+
+      const id = 'issue-1';
+      const updateInput: UpdateIssueInput = { stateId: 'state-2' };
+      const result: UpdateIssuesResponse = await graphqlClient.updateIssue(id, updateInput);
+
+      expect(result).toEqual(mockResponse.data);
+      // Verify single mutation call with direct id (not array)
+      expect(mockRawRequest).toHaveBeenCalledTimes(1);
+      expect(mockRawRequest).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          id,
+          input: updateInput
+        })
+      );
+    });
+  });
 });
