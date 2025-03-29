@@ -35,7 +35,30 @@ export class IssueHandler extends BaseHandler implements IssueHandlerMethods {
       const client = this.verifyAuth();
       this.validateRequiredParams(args, ['title', 'description', 'teamId']);
 
-      const result = await client.createIssue(args) as CreateIssueResponse;
+      // Process input to ensure correct types
+      const processedArgs = { ...args };
+      
+      // Convert estimate to integer if present
+      if (processedArgs.estimate !== undefined) {
+        processedArgs.estimate = parseInt(String(processedArgs.estimate), 10);
+        
+        // If parsing fails, remove the estimate field
+        if (isNaN(processedArgs.estimate)) {
+          delete processedArgs.estimate;
+        }
+      }
+      
+      // Convert priority to integer if present
+      if (processedArgs.priority !== undefined) {
+        processedArgs.priority = parseInt(String(processedArgs.priority), 10);
+        
+        // If parsing fails or out of range, use default priority
+        if (isNaN(processedArgs.priority) || processedArgs.priority < 0 || processedArgs.priority > 4) {
+          processedArgs.priority = 0;
+        }
+      }
+
+      const result = await client.createIssue(processedArgs) as CreateIssueResponse;
 
       if (!result.issueCreate.success || !result.issueCreate.issue) {
         throw new Error('Failed to create issue');
@@ -136,8 +159,14 @@ export class IssueHandler extends BaseHandler implements IssueHandlerMethods {
       const filter: Record<string, unknown> = {};
       
       if (args.query) {
-        filter.search = args.query;
+        // For both identifier and text searches, use the title filter with contains
+        // This is a workaround since Linear API doesn't directly support identifier filtering
+        filter.or = [
+          { title: { containsIgnoreCase: args.query } },
+          { number: { eq: this.extractIssueNumber(args.query) } }
+        ];
       }
+      
       if (args.filter?.project?.id?.eq) {
         filter.project = { id: { eq: args.filter.project.id.eq } };
       }
@@ -165,6 +194,17 @@ export class IssueHandler extends BaseHandler implements IssueHandlerMethods {
     } catch (error) {
       this.handleError(error, 'search issues');
     }
+  }
+
+  /**
+   * Helper method to extract the issue number from an identifier (e.g., "IDE-11" -> 11)
+   */
+  private extractIssueNumber(query: string): number | null {
+    const match = query.match(/^[A-Z]+-(\d+)$/);
+    if (match && match[1]) {
+      return parseInt(match[1], 10);
+    }
+    return null;
   }
 
   /**
